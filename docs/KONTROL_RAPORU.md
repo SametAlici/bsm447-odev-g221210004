@@ -82,7 +82,9 @@ Dosyalar: `.github/workflows/daily-check.yml`, `scripts/daily-check.mjs`, `scrip
 
 **Bu bot raporları günlük insan geliştirmesi değildir. Yönergede bot commitlerinin ders koşulunda kabul edileceği belirtilmiyor. En az 10 farklı günde anlamlı geliştirme commit'i koşulunun karşılandığı ayrıca doğrulanmalıdır.**
 
-GitHub üzerindeki deneme sonucu kurulum doğrulaması tamamlanınca bu rapora eklenecektir.
+**GitHub üzerinde doğrulandı:** [Son dry-run çalışması](https://github.com/SametAlici/bsm447-odev-g221210004/actions/runs/41503158626) Node 24 tabanlı güncel Actions sürümleriyle tamamlandı. `npm ci`, Expo uyumu, Android export ve PokeAPI geçti; Expo Doctor 18/20 ile aynı iki sorunu yakaladı. Workflow bu mevcut uygulama sorunları nedeniyle bilinçli olarak başarısız/kırmızı sonuçlandı. Deneme modunda commit adımı atlandı; günlük rapor depoya yazılmadı. Çalıştırıcı günlüğünde `Contents: write` yetkisi de doğrulandı.
+
+[Tarih dışında gerçek mod denemesi](https://github.com/SametAlici/bsm447-odev-g221210004/actions/runs/41502862753) başarılı: 2 Kasım'da pencere kontrolü tam kontrol/commit job'ını atladı. İlk gerçek günlük bot commit'i 5 Kasım için planlıdır; henüz gerçekleşmiş bir işlem olarak sunulmaz.
 
 ## 5. Teslim takvimi ve son kontrol
 
