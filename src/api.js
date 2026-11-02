@@ -3,9 +3,21 @@
 
 export const TYPE_URL = 'https://pokeapi.co/api/v2/type/water';
 
+// İstek 15 saniyede cevap gelmezse iptal edilir; böylece ekran
+// sonsuza kadar "Yükleniyor…" kalmaz, hata mesajı gösterilir.
+async function fetchWithTimeout(url, ms = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Liste isteği: su türündeki Pokémon'ların adı ve adresi gelir.
 export async function getWaterPokemon() {
-  const response = await fetch(TYPE_URL);
+  const response = await fetchWithTimeout(TYPE_URL);
   if (!response.ok) {
     throw new Error('Sunucu hatası: ' + response.status);
   }
@@ -19,7 +31,7 @@ export async function getWaterPokemon() {
 
 // Detay için ikinci istek: pokemon/{name}
 export async function getPokemonDetail(name) {
-  const response = await fetch('https://pokeapi.co/api/v2/pokemon/' + name);
+  const response = await fetchWithTimeout('https://pokeapi.co/api/v2/pokemon/' + name);
   if (!response.ok) {
     throw new Error('Sunucu hatası: ' + response.status);
   }
