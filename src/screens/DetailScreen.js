@@ -1,5 +1,5 @@
 // Detay ekranı: Pokémon'u route.params ile alır, ikinci istekle ayrıntıyı çeker.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -26,29 +26,42 @@ const STAT_NAMES = {
 
 export default function DetailScreen({ route, navigation }) {
   const { pokemon } = route.params; // Liste ya da Kaydedilenler'den gelen kayıt
-  const { isSaved, addPokemon, removePokemon } = useSaved();
+  const {
+    isSaved, addPokemon, removePokemon, storageLoading, storageReady,
+    storageSaving, storageError, retryLoad,
+  } = useSaved();
 
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const requestId = useRef(0);
 
   function loadDetail() {
+    const currentRequest = ++requestId.current;
     setLoading(true);
     setError(null);
     getPokemonDetail(pokemon.name)
-      .then((data) => setDetail(data))
-      .catch(() => setError('Ayrıntı alınamadı.'))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (currentRequest === requestId.current) setDetail(data);
+      })
+      .catch(() => {
+        if (currentRequest === requestId.current) setError('Ayrıntı alınamadı.');
+      })
+      .finally(() => {
+        if (currentRequest === requestId.current) setLoading(false);
+      });
   }
 
   useEffect(() => {
     navigation.setOptions({ title: prettyName(pokemon.name) });
     loadDetail();
+    return () => { requestId.current += 1; };
   }, [pokemon.name]);
 
   const saved = isSaved(pokemon.name);
 
   function toggleSave() {
+    if (!storageReady || storageSaving) return;
     if (saved) {
       removePokemon(pokemon.name);
     } else {
@@ -115,13 +128,24 @@ export default function DetailScreen({ route, navigation }) {
       </View>
 
       <Pressable
-        style={[styles.saveButton, saved && styles.removeButton]}
+        style={[
+          styles.saveButton, saved && styles.removeButton,
+          (!storageReady || storageSaving) && styles.disabledButton,
+        ]}
+        disabled={!storageReady || storageSaving}
         onPress={toggleSave}
       >
         <Text style={styles.saveText}>
-          {saved ? 'Kaydedilenlerden çıkar' : 'Kaydet'}
+          {storageLoading ? 'Kayıtlar yükleniyor…' : storageSaving ? 'Kaydediliyor…' :
+            saved ? 'Kaydedilenlerden çıkar' : 'Kaydet'}
         </Text>
       </Pressable>
+      {storageError && <Text style={styles.storageError}>{storageError}</Text>}
+      {!storageReady && !storageLoading && (
+        <Pressable style={styles.saveButton} onPress={retryLoad}>
+          <Text style={styles.saveText}>Kayıtları tekrar oku</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
@@ -219,6 +243,14 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     backgroundColor: '#E53935',
+  },
+  disabledButton: {
+    opacity: 0.55,
+  },
+  storageError: {
+    color: '#C62828',
+    textAlign: 'center',
+    marginVertical: 12,
   },
   saveText: {
     color: '#fff',

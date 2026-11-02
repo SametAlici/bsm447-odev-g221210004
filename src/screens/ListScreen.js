@@ -24,23 +24,36 @@ export default function ListScreen({ navigation }) {
   // Kullanıcı listeyi kaydırdı mı? (onEndReached ilk açılışta kendiliğinden
   // tetiklenmesin diye tutuluyor)
   const userScrolled = useRef(false);
+  const requestId = useRef(0);
 
   function loadData() {
+    const id = ++requestId.current;
     setLoading(true);
     setError(null);
     getWaterPokemon()
-      .then((list) => setPokemonList(list))
-      .catch(() => setError('Veri alınamadı. İnternet bağlantınızı kontrol edin.'))
-      .finally(() => setLoading(false));
+      .then((list) => {
+        if (id === requestId.current) setPokemonList(list);
+      })
+      .catch(() => {
+        if (id === requestId.current) {
+          setError('Veri alınamadı. İnternet bağlantınızı kontrol edin.');
+        }
+      })
+      .finally(() => {
+        if (id === requestId.current) setLoading(false);
+      });
   }
 
   // Ekran ilk açıldığında veriyi bir kez çek
   useEffect(() => {
     loadData();
+    // Ekran kapandıysa veya yeni istek başladıysa eski yanıtı kullanma.
+    return () => { requestId.current += 1; };
   }, []);
 
   // Arama değişince yine ilk 10 kayıttan başla
   function onSearchChange(text) {
+    userScrolled.current = false;
     setSearch(text);
     setVisibleCount(PAGE_SIZE);
   }
@@ -56,7 +69,7 @@ export default function ListScreen({ navigation }) {
 
   function loadMore() {
     if (hasMore) {
-      setVisibleCount(visibleCount + PAGE_SIZE);
+      setVisibleCount((count) => Math.min(count + PAGE_SIZE, filtered.length));
     }
   }
 

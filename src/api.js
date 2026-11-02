@@ -3,13 +3,28 @@
 
 export const TYPE_URL = 'https://pokeapi.co/api/v2/type/water';
 
-// İstek 15 saniyede cevap gelmezse iptal edilir; böylece ekran
-// sonsuza kadar "Yükleniyor…" kalmaz, hata mesajı gösterilir.
-async function fetchWithTimeout(url, ms = 15000) {
+// 15 saniyelik sınır hem bağlantıyı hem JSON gövdesinin okunmasını kapsar.
+// Promise.race, gövde okunurken iptali desteklemeyen ortamlarda da beklemeyi bitirir.
+async function fetchJsonWithTimeout(url, ms = 15000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error('İstek zaman aşımına uğradı.'));
+    }, ms);
+  });
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await Promise.race([
+      (async () => {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error('Sunucu hatası: ' + response.status);
+        }
+        return response.json();
+      })(),
+      timeout,
+    ]);
   } finally {
     clearTimeout(timer);
   }
@@ -17,11 +32,7 @@ async function fetchWithTimeout(url, ms = 15000) {
 
 // Liste isteği: su türündeki Pokémon'ların adı ve adresi gelir.
 export async function getWaterPokemon() {
-  const response = await fetchWithTimeout(TYPE_URL);
-  if (!response.ok) {
-    throw new Error('Sunucu hatası: ' + response.status);
-  }
-  const data = await response.json();
+  const data = await fetchJsonWithTimeout(TYPE_URL);
   // data.pokemon = [{ slot, pokemon: { name, url } }, ...]
   return data.pokemon.map((item) => ({
     name: item.pokemon.name,
@@ -31,11 +42,7 @@ export async function getWaterPokemon() {
 
 // Detay için ikinci istek: pokemon/{name}
 export async function getPokemonDetail(name) {
-  const response = await fetchWithTimeout('https://pokeapi.co/api/v2/pokemon/' + name);
-  if (!response.ok) {
-    throw new Error('Sunucu hatası: ' + response.status);
-  }
-  return response.json();
+  return fetchJsonWithTimeout('https://pokeapi.co/api/v2/pokemon/' + encodeURIComponent(name));
 }
 
 // Adresin sonundaki numarayı alır: ".../pokemon/7/" → "7"

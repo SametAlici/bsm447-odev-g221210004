@@ -33,6 +33,8 @@ const run = (name, command, args, timeout) => {
 };
 
 const installed = run('Kilit dosyasından temiz bağımlılık kurulumu', 'npm', ['ci', '--no-audit', '--no-fund'], 5 * 60 * 1000);
+if (installed) run('API, kayıt güvenilirliği ve tarih regresyon testleri', 'npm', ['test'], 60 * 1000);
+else results.push({ name: 'API, kayıt güvenilirliği ve tarih regresyon testleri', command: 'npm test', passed: false, seconds: '0', detail: 'Atlandı: npm ci başarısız' });
 const expoChecks = [
   ['Expo bağımlılık uyumu', ['expo', 'install', '--check'], 2 * 60 * 1000],
   ['Expo Doctor', ['--yes', 'expo-doctor@1.21.5'], 3 * 60 * 1000],

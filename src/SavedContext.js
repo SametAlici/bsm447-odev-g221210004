@@ -1,46 +1,30 @@
-// Kaydedilenler: AsyncStorage ile telefonda saklanır.
-// Context sayesinde Detay ve Kaydedilenler ekranı aynı listeyi görür.
-import { createContext, useContext, useEffect, useState } from 'react';
+// Detay ve Kaydedilenler ekranları aynı kalıcı kayıt durumunu paylaşır.
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const STORAGE_KEY = 'kaydedilenler';
+import { createSavedStore } from './savedStore';
 
 const SavedContext = createContext(null);
 
 export function SavedProvider({ children }) {
-  const [saved, setSaved] = useState([]);
+  const [store] = useState(() => createSavedStore(AsyncStorage));
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
-  // Uygulama açılınca kayıtlı veriyi oku
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((json) => {
-      if (json) {
-        setSaved(JSON.parse(json));
-      }
-    });
-  }, []);
-
-  // Listeyi hem state'e hem AsyncStorage'a yaz
-  function updateSaved(newList) {
-    setSaved(newList);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
-  }
-
-  function isSaved(name) {
-    return saved.some((p) => p.name === name);
-  }
-
-  function addPokemon(pokemon) {
-    if (!isSaved(pokemon.name)) {
-      updateSaved([...saved, { name: pokemon.name, url: pokemon.url }]);
-    }
-  }
-
-  function removePokemon(name) {
-    updateSaved(saved.filter((p) => p.name !== name));
-  }
+    store.load();
+  }, [store]);
 
   return (
-    <SavedContext.Provider value={{ saved, isSaved, addPokemon, removePokemon }}>
+    <SavedContext.Provider value={{
+      saved: state.saved,
+      storageLoading: state.loading,
+      storageReady: state.ready,
+      storageSaving: state.saving,
+      storageError: state.error,
+      retryLoad: store.load,
+      isSaved: (name) => state.saved.some((pokemon) => pokemon.name === name),
+      addPokemon: store.addPokemon,
+      removePokemon: store.removePokemon,
+    }}>
       {children}
     </SavedContext.Provider>
   );
