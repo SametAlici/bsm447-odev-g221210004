@@ -1,0 +1,105 @@
+name: 15 günlük gerçek kontrol raporu
+
+on:
+  schedule:
+    # 5-19 Kasım, Türkiye saati 18:17 (UTC 15:17). Yıl ayrıca aşağıda kontrol edilir.
+    - cron: '17 15 5-19 11 *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Yalnız kontrolleri çalıştır; raporu depoya commit etme'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-check-main
+  cancel-in-progress: false
+
+jobs:
+  window:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      date: ${{ steps.guard.outputs.date }}
+      dry_run: ${{ steps.guard.outputs.dry_run }}
+      should_run: ${{ steps.guard.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Gerçek Türkiye tarihi ve 2026 sınırı
+        id: guard
+        env:
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: node scripts/daily-window.mjs
+
+  check:
+    needs: window
+    if: needs.window.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      DRY_RUN: ${{ needs.window.outputs.dry_run }}
+      REPORT_DATE: ${{ needs.window.outputs.date }}
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Aynı gün ikinci rapor commit'ini önle
+        id: existing
+        shell: bash
+        run: |
+          exists=false
+          if [[ "$DRY_RUN" == false && -f "docs/daily-checks/$REPORT_DATE.md" ]]; then
+            exists=true
+            echo "Bugünün raporu zaten var; yeni commit atılmayacak." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "exists=$exists" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.existing.outputs.exists != 'true'
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Tarih ve dry-run korumalarını doğrula
+        if: steps.existing.outputs.exists != 'true'
+        run: node --test scripts/daily-window.test.mjs
+      - name: Gerçek kurulum, Expo, Android export ve API kontrolleri
+        id: checks
+        if: steps.existing.outputs.exists != 'true'
+        continue-on-error: true
+        run: node scripts/daily-check.mjs
+      - name: Bugünün gerçek raporunu bot olarak commit et
+        if: always() && steps.checks.outcome != 'skipped' && steps.checks.outcome != '' && env.DRY_RUN == 'false'
+        shell: bash
+        run: |
+          actual_date="$(TZ=Europe/Istanbul date +%F)"
+          [[ "$actual_date" == "$REPORT_DATE" ]]
+          [[ "$actual_date" > 2026-11-04 && "$actual_date" < 2026-11-20 ]]
+          report_file="docs/daily-checks/$REPORT_DATE.md"
+          test -f "$report_file"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$report_file"
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "ci: $REPORT_DATE otomatik Expo ve PokeAPI kontrol raporu"
+          for attempt in 1 2 3; do
+            echo "Push denemesi: $attempt"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          echo 'Rapor push edilemedi.' >&2
+          exit 1
+      - name: Başarısız kontrolleri kırmızı göster
+        if: always() && steps.checks.outcome == 'failure'
+        run: exit 1
