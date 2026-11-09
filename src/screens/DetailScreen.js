@@ -24,6 +24,28 @@ const STAT_NAMES = {
   speed: 'Hız',
 };
 
+// Tür adlarının Türkçesi (listede olmayan tür İngilizce adıyla görünür)
+const TYPE_NAMES = {
+  water: 'Su',
+  fire: 'Ateş',
+  grass: 'Çimen',
+  electric: 'Elektrik',
+  ice: 'Buz',
+  ground: 'Toprak',
+  rock: 'Kaya',
+  flying: 'Uçan',
+  psychic: 'Psişik',
+  poison: 'Zehir',
+  bug: 'Böcek',
+  fighting: 'Dövüş',
+  normal: 'Normal',
+  ghost: 'Hayalet',
+  dragon: 'Ejderha',
+  dark: 'Karanlık',
+  steel: 'Çelik',
+  fairy: 'Peri',
+};
+
 export default function DetailScreen({ route, navigation }) {
   const { pokemon } = route.params; // Liste ya da Kaydedilenler'den gelen kayıt
   const {
@@ -94,7 +116,9 @@ export default function DetailScreen({ route, navigation }) {
         <Image source={{ uri: detail.sprites.front_default }} style={styles.image} />
         <Text style={styles.name}>{prettyName(detail.name)}</Text>
         <Text style={styles.types}>
-          {detail.types.map((t) => prettyName(t.type.name)).join(' · ')}
+          {detail.types
+            .map((t) => TYPE_NAMES[t.type.name] || prettyName(t.type.name))
+            .join(' · ')}
         </Text>
 
         {/* PokeAPI boyu desimetre, ağırlığı hektogram verir */}
@@ -125,6 +149,21 @@ export default function DetailScreen({ route, navigation }) {
             </View>
           );
         })}
+      </View>
+
+      {/* Yetenekler: abilities[i].ability.name, gizli yetenek ayrıca işaretlenir */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Yetenekler</Text>
+        <View style={styles.chipRow}>
+          {detail.abilities.map((a) => (
+            <View key={a.ability.name} style={styles.chip}>
+              <Text style={styles.chipText}>
+                {prettyName(a.ability.name)}
+                {a.is_hidden ? ' (gizli)' : ''}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       <Pressable
@@ -234,6 +273,23 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#1E88E5',
     borderRadius: 6,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignSelf: 'flex-start',
+  },
+  chip: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipText: {
+    color: '#0D47A1',
+    fontWeight: '600',
   },
   saveButton: {
     backgroundColor: '#1E88E5',
