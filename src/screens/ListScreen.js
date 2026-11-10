@@ -17,6 +17,7 @@ const PAGE_SIZE = 10; // Ek kural 6: 10'ar 10'ar gösterme
 export default function ListScreen({ navigation }) {
   const [pokemonList, setPokemonList] = useState([]); // API'den gelen tüm veri
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // aşağı çekip yenileme
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE); // ekranda kaç kayıt var
@@ -26,13 +27,22 @@ export default function ListScreen({ navigation }) {
   const userScrolled = useRef(false);
   const requestId = useRef(0);
 
-  function loadData() {
+  // isRefresh: liste aşağı çekildiyse tam ekran "Yükleniyor…" yerine
+  // listenin üstündeki küçük göstergeyi kullan
+  function loadData(isRefresh = false) {
     const id = ++requestId.current;
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     getWaterPokemon()
       .then((list) => {
-        if (id === requestId.current) setPokemonList(list);
+        if (id === requestId.current) {
+          setPokemonList(list);
+          setVisibleCount(PAGE_SIZE); // yenilenince yine ilk 10 kayıt
+        }
       })
       .catch(() => {
         if (id === requestId.current) {
@@ -40,7 +50,10 @@ export default function ListScreen({ navigation }) {
         }
       })
       .finally(() => {
-        if (id === requestId.current) setLoading(false);
+        if (id === requestId.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       });
   }
 
@@ -94,7 +107,7 @@ export default function ListScreen({ navigation }) {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{error}</Text>
-        <Pressable style={styles.button} onPress={loadData}>
+        <Pressable style={styles.button} onPress={() => loadData()}>
           <Text style={styles.buttonText}>Tekrar dene</Text>
         </Pressable>
       </View>
@@ -127,6 +140,8 @@ export default function ListScreen({ navigation }) {
         onScrollBeginDrag={() => (userScrolled.current = true)}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.2}
+        refreshing={refreshing}
+        onRefresh={() => loadData(true)}
         ListEmptyComponent={<Text style={styles.info}>Sonuç bulunamadı</Text>}
         ListFooterComponent={
           hasMore ? (
