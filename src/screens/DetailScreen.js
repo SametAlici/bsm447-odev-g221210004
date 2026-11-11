@@ -110,10 +110,22 @@ export default function DetailScreen({ route, navigation }) {
     );
   }
 
+  // Önce yüksek çözünürlüklü resim, yoksa küçük sprite, o da yoksa null
+  const imageUrl =
+    detail.sprites.other?.['official-artwork']?.front_default ||
+    detail.sprites.front_default;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.card}>
-        <Image source={{ uri: detail.sprites.front_default }} style={styles.image} />
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" />
+        ) : (
+          <View style={[styles.image, styles.noImage]}>
+            <Text style={styles.noImageText}>Resim yok</Text>
+          </View>
+        )}
+        <Text style={styles.number}>#{detail.id}</Text>
         <Text style={styles.name}>{prettyName(detail.name)}</Text>
         <Text style={styles.types}>
           {detail.types
@@ -214,6 +226,20 @@ const styles = StyleSheet.create({
   image: {
     width: 180,
     height: 180,
+  },
+  noImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+  },
+  noImageText: {
+    color: '#888',
+  },
+  number: {
+    color: '#888',
+    fontSize: 15,
+    marginTop: 6,
   },
   name: {
     fontSize: 26,
