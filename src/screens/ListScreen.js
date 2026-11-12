@@ -21,6 +21,7 @@ export default function ListScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE); // ekranda kaç kayıt var
+  const [bgColor, setBgColor] = useState('#E3F2FD'); // arka plan rengi
 
   // Kullanıcı listeyi kaydırdı mı? (onEndReached ilk açılışta kendiliğinden
   // tetiklenmesin diye tutuluyor)
@@ -115,7 +116,23 @@ export default function ListScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      {/* Arka plan rengini değiştiren düğmeler */}
+      <View style={styles.colorRow}>
+        <Text>Arka plan: </Text>
+        <Pressable
+          style={[styles.colorButton, { backgroundColor: '#E3F2FD' }]}
+          onPress={() => setBgColor('#E3F2FD')}
+        />
+        <Pressable
+          style={[styles.colorButton, { backgroundColor: '#E8F5E9' }]}
+          onPress={() => setBgColor('#E8F5E9')}
+        />
+        <Pressable
+          style={[styles.colorButton, { backgroundColor: '#FFF3E0' }]}
+          onPress={() => setBgColor('#FFF3E0')}
+        />
+      </View>
       <TextInput
         style={styles.search}
         placeholder="Pokémon ara (ör. squirtle)"
@@ -161,6 +178,20 @@ export default function ListScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  colorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 14,
+    marginTop: 10,
+  },
+  colorButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#999',
+  },
   container: {
     flex: 1,
     backgroundColor: '#E3F2FD',
