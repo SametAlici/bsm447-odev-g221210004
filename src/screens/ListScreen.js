@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -117,8 +118,12 @@ export default function ListScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* Arka plan rengini değiştiren düğmeler */}
-      <View style={styles.colorRow}>
+      {/* Arka plan rengini değiştiren düğmeler (sığmazsa yana kaydırılır) */}
+      <ScrollView
+        horizontal
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={styles.colorRow}
+      >
         <Text>Arka plan: </Text>
         <Pressable
           style={[styles.colorButton, { backgroundColor: '#E3F2FD' }]}
@@ -148,7 +153,11 @@ export default function ListScreen({ navigation }) {
           style={[styles.colorButton, { backgroundColor: '#E0F2F1' }]}
           onPress={() => setBgColor('#E0F2F1')}
         />
-      </View>
+        <Pressable
+          style={[styles.colorButton, { backgroundColor: '#ECEFF1' }]}
+          onPress={() => setBgColor('#ECEFF1')}
+        />
+      </ScrollView>
       <TextInput
         style={styles.search}
         placeholder="Pokémon ara (ör. squirtle)"
