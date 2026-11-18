@@ -157,6 +157,10 @@ export default function ListScreen({ navigation }) {
           style={[styles.colorButton, { backgroundColor: '#ECEFF1' }]}
           onPress={() => setBgColor('#ECEFF1')}
         />
+        <Pressable
+          style={[styles.colorButton, { backgroundColor: '#F1F8E9' }]}
+          onPress={() => setBgColor('#F1F8E9')}
+        />
       </ScrollView>
       <TextInput
         style={styles.search}
